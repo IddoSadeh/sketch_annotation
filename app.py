@@ -1,16 +1,38 @@
 import re
 import plotly.graph_objects as go
-# import plotly.express as px
 import dash
 from dash import Dash, dcc, html, Input, Output, State, ctx
 import dash_daq as daq
-from skimage import data
-import json
+
 
 app = dash.Dash(__name__)
 server = app.server
 # Build App
+fig = go.Figure()
+# config options
+# https://community.plotly.com/t/shapes-and-annotations-become-editable-after-using-config-key/18585
+# start here for basic shape annotations:
+# https://dash.plotly.com/annotations
+config = {
+    # 'editable': True,
+    # # more edits options: https://dash.plotly.com/dash-core-components/graph
+    'edits': {
+        'annotationPosition': True,
+        'annotationText': True,
+        # 'shapePosition': True
+    },
+    "modeBarButtonsToAdd": [
+        "drawline",
+        "drawopenpath",
+        "drawclosedpath",
+        "drawcircle",
+        "drawrect",
+        "eraseshape",
+        "addtext",
 
+    ],
+
+}
 app.layout = html.Div(
     [
         # store not in use for now
@@ -64,7 +86,7 @@ app.layout = html.Div(
 
 img = "https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?ixlib=rb-1.2.1&ixid" \
       "=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8Zm9jdXN8ZW58MHx8MHx8&w=1000&q=80 "
-fig = go.Figure()
+
 
 img_width = 1600
 img_height = 900
@@ -116,30 +138,7 @@ fig.update_layout(
     margin={"l": 0, "r": 0, "t": 0, "b": 0},
 )
 
-# config options
-# https://community.plotly.com/t/shapes-and-annotations-become-editable-after-using-config-key/18585
-# start here for basic shape annotations:
-# https://dash.plotly.com/annotations
-config = {
-    # 'editable': True,
-    # # more edits options: https://dash.plotly.com/dash-core-components/graph
-    'edits': {
-        'annotationPosition': True,
-        'annotationText': True,
-        # 'shapePosition': True
-    },
-    "modeBarButtonsToAdd": [
-        "drawline",
-        "drawopenpath",
-        "drawclosedpath",
-        "drawcircle",
-        "drawrect",
-        "eraseshape",
-        "addtext",
 
-    ],
-
-}
 
 
 
