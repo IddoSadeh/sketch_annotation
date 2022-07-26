@@ -7,6 +7,10 @@ import dash_daq as daq
 from skimage import data
 import json
 
+app = dash.Dash(__name__)
+server = app.server
+
+
 img = "https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?ixlib=rb-1.2.1&ixid" \
       "=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8Zm9jdXN8ZW58MHx8MHx8&w=1000&q=80 "
 fig = go.Figure()
