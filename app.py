@@ -9,7 +9,58 @@ import json
 
 app = dash.Dash(__name__)
 server = app.server
+# Build App
 
+app.layout = html.Div(
+    [
+        # store not in use for now
+        # for documentation
+        # https://dash.plotly.com/dash-core-components/store
+        dcc.Store(id='relay', storage_type='session'),
+        dcc.ConfirmDialog(
+            id='confirm-reset',
+            message='Warning! All progress wil be lost! Are you sure you want to continue?',
+        ),
+
+        html.H3("Drag and draw annotations - use the modebar to pick a different drawing tool"),
+
+        html.Div(
+            [dcc.Graph(id="fig-image", figure=fig, config=config)],
+            style={
+                "display": "inline-block",
+                "position": "absolute",
+                "left": 0,
+            }, ),
+
+        html.Div([
+            # for input documentation
+            # https://dash.plotly.com/dash-core-components/input
+            html.Pre("Enter text"),
+            dcc.Input(id="text-input", type='text'),
+            html.Pre("Choose text font size"),
+            dcc.Input(id='font-size', type="number", min=10, max=30, step=1,value = 28),
+            html.Pre(),
+            html.Button('add text to image', id='submit-val', n_clicks=0),
+            html.Pre("Clear Image"),
+            html.Button('clear image', id="clean-reset", n_clicks=0),
+            html.Pre('Color Picker'),
+            # for colorpicker documentation
+            # https://dash.plotly.com/dash-daq
+            daq.ColorPicker(
+            id="annotation-color-picker", label="Color Picker", value=dict(rgb=dict(r=0, g=0, b=0, a=0))
+            )
+
+
+        ],
+            style={
+                "display": "inline-block",
+                "position": "absolute",
+                "right": 20,
+            },
+        ),
+
+    ],
+)
 
 img = "https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?ixlib=rb-1.2.1&ixid" \
       "=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8Zm9jdXN8ZW58MHx8MHx8&w=1000&q=80 "
@@ -90,59 +141,8 @@ config = {
 
 }
 
-# Build App
-app = dash.Dash(__name__)
-app.layout = html.Div(
-    [
-        # store not in use for now
-        # for documentation
-        # https://dash.plotly.com/dash-core-components/store
-        dcc.Store(id='relay', storage_type='session'),
-        dcc.ConfirmDialog(
-            id='confirm-reset',
-            message='Warning! All progress wil be lost! Are you sure you want to continue?',
-        ),
-
-        html.H3("Drag and draw annotations - use the modebar to pick a different drawing tool"),
-
-        html.Div(
-            [dcc.Graph(id="fig-image", figure=fig, config=config)],
-            style={
-                "display": "inline-block",
-                "position": "absolute",
-                "left": 0,
-            }, ),
-
-        html.Div([
-            # for input documentation
-            # https://dash.plotly.com/dash-core-components/input
-            html.Pre("Enter text"),
-            dcc.Input(id="text-input", type='text'),
-            html.Pre("Choose text font size"),
-            dcc.Input(id='font-size', type="number", min=10, max=30, step=1,value = 28),
-            html.Pre(),
-            html.Button('add text to image', id='submit-val', n_clicks=0),
-            html.Pre("Clear Image"),
-            html.Button('clear image', id="clean-reset", n_clicks=0),
-            html.Pre('Color Picker'),
-            # for colorpicker documentation
-            # https://dash.plotly.com/dash-daq
-            daq.ColorPicker(
-            id="annotation-color-picker", label="Color Picker", value=dict(rgb=dict(r=0, g=0, b=0, a=0))
-            )
 
 
-        ],
-            style={
-                "display": "inline-block",
-                "position": "absolute",
-                "right": 20,
-            },
-        ),
-
-    ],
-
-)
 
 
 @app.callback(
