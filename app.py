@@ -163,44 +163,40 @@ def display_confirm(submit, reset):
 @app.callback(
     Output("fig-image", "figure"),
     Output('submit-val', 'n_clicks'),
-    Output('confirm-reset', 'submit_n_clicks'),
     Output('clean-reset', 'n_clicks'),
     # for explanation on relayout data:
     # https://dash.plotly.com/interactive-graphing
     Input('fig-image', 'relayoutData'),
     State('text-input', 'value'),
     Input('submit-val', 'n_clicks'),
-    Input('confirm-reset', 'submit_n_clicks'),
     Input('clean-reset', 'n_clicks'),
     Input("annotation-color-picker", "value"),
     State("font-size", "value"),
+    Input('shapes_data', 'data'),
+    Input('text_data', 'data'),
 )
-def save_data(relayout_data, inputText, submit_clicks, confirm, reset, color_value, font_size):
+def save_data(relayout_data, inputText, submit_clicks, reset, color_value, font_size,shapes_data,text_data):
     print("new")
     # adding new text
     if submit_clicks:
         if not len(fig.layout.annotations) == submit_clicks:
-            return add_text(inputText, color_value, font_size), submit_clicks, confirm, reset
+            return add_text(inputText, color_value, font_size), submit_clicks, reset
 
     #this adds reactive color changes if the color picker was what triggered the callback
     #https://dash.plotly.com/determining-which-callback-input-changed
     if ctx.triggered_id == "annotation-color-picker":
         update_annotations(relayout_data, color_value)
-        return fig, submit_clicks, confirm, reset
+        return fig, submit_clicks, reset
 
-    # resetting image if confirm was clicked
-    if confirm:
-        return clean_figure(confirm)
 
-    print(relayout_data)
     # relayout_data gives back user changes data, if it exists, update changes to figure
     if "dragmode" in str(relayout_data):
         fig.update_layout(relayout_data)
     elif relayout_data:
-        print("1")
+
         update_annotations(relayout_data, color_value,font_size)
 
-    return fig, submit_clicks, confirm, reset
+    return fig, submit_clicks, reset
 
 
 
@@ -242,7 +238,6 @@ def update_annotations(relayout_data, color_value='black', size=28):
         if len(relayout_data['shapes']) == 0:
             fig.layout.shapes = ()
         else:
-            print(color_value)
             if 'hex' in str(color_value):
                 relayout_data['shapes'][-1]["line"]["color"] = color_value["hex"]
             fig.layout.shapes = ()
@@ -290,13 +285,13 @@ def update_annotations(relayout_data, color_value='black', size=28):
                 Annotation(relayout_data[f'annotations[{i}].x'], relayout_data[f'annotations[{i}].y'],
                            fig.layout.annotations[i]['text'], f'rgba({r},{g},{b},1)', size).__dict__, i)
 
-
-# precondition: confirm is not none
-# postcondition: all shape and text annotation data in figure is erase, all button click counters are reset
+@app.callback(
+    Output('shapes_data','clear_data'),
+    Output('text_data', 'clear_data'),
+    Input('confirm-reset', 'submit_n_clicks'),
+)
 def clean_figure(confirm):
-    fig.layout.shapes = ()
-    fig.layout.annotations = ()
-    return fig, 0, 0, 0
+    return True, True
 
 
 class Annotation:
