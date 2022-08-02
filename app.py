@@ -39,8 +39,8 @@ app.layout = html.Div(
         # store not in use for now
         # for documentation
         # https://dash.plotly.com/dash-core-components/store
-        dcc.Store(id='shapes_data',data=[], storage_type='session'),
-        dcc.Store(id='text_data',data=[], storage_type='session'),
+        dcc.Store(id='shapes_data',data=[], storage_type='memory'),
+        dcc.Store(id='text_data',data=[], storage_type='memory'),
         dcc.ConfirmDialog(
             id='confirm-reset',
             message='Warning! All progress wil be lost! Are you sure you want to continue?',
