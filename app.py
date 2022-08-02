@@ -3,10 +3,11 @@ import plotly.graph_objects as go
 import dash
 from dash import Dash, dcc, html, Input, Output, State, ctx
 import dash_daq as daq
+from flask import Flask
 
 
-app = dash.Dash(__name__)
-server = app.server
+server = Flask(__name__)
+app = dash.Dash(__name__,server=server)
 # Build App
 fig = go.Figure()
 
