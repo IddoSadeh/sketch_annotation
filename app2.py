@@ -142,10 +142,10 @@ fig.update_layout(
     Output("fig-image", "figure"),
     # for explanation on relayout data:
     # https://dash.plotly.com/interactive-graphing
-    Input('fig-image', 'relayoutData'),
+    State('fig-image', 'relayoutData'),
     Input("text_data", "data"),
     Input("shape_data", "data"),
-
+    prevent_initial_call=True,
 )
 def update_figure(relayout_data, text, shapes):
     print("b")
@@ -168,6 +168,7 @@ def update_figure(relayout_data, text, shapes):
     Output('shape_data', 'clear_data'),
     Output('text_data', 'clear_data'),
     Input('confirm-reset', 'submit_n_clicks'),
+    prevent_initial_call=True,
 )
 def clean_figure(confirm):
     fig.layout.shapes = ()
@@ -183,7 +184,7 @@ def clean_figure(confirm):
     Input("annotation-color-picker", "value"),
     Input('fig-image', 'relayoutData'),
     Input('submit-val', 'n_clicks'),
-
+    prevent_initial_call=True,
 )
 def text_annotations(text_data, text, font, color, relayout_data, submit):
     r = color['rgb']['r']
@@ -220,7 +221,7 @@ def text_annotations(text_data, text, font, color, relayout_data, submit):
     Input("shape_data", "data"),
     Input("annotation-color-picker", "value"),
     Input('fig-image', 'relayoutData'),
-
+    prevent_initial_call=True,
 )
 def shape_annotations(shape_data, color, relayout_data):
     r = color['rgb']['r']
@@ -259,7 +260,8 @@ def shape_annotations(shape_data, color, relayout_data):
 @app.callback(
     Output('confirm-reset', 'displayed'),
     Input('clean-reset', 'n_clicks'),
-    Input('confirm-reset', 'submit_n_clicks')
+    Input('confirm-reset', 'submit_n_clicks'),
+    prevent_initial_call=True,
 )
 def display_confirm(clean, confirm):
     if ctx.triggered_id == 'clean-reset':

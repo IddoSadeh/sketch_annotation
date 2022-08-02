@@ -179,30 +179,25 @@ def save_data(relayout_data, inputText, submit_clicks, confirm, reset, color_val
     # adding new text
     if submit_clicks:
         if not len(fig.layout.annotations) == submit_clicks:
-            print("!")
-            print(relayout_data)
             return add_text(inputText, color_value, font_size), submit_clicks, confirm, reset
 
-    # relayout_data gives back user changes data, if it exists, update changes to figure
-    print(relayout_data)
-    if "dragmode" in str(relayout_data):
-        fig.update_layout(relayout_data)
-    if relayout_data:
-        update_annotations(relayout_data, color_value)
-
-    print(relayout_data)
     #this adds reactive color changes if the color picker was what triggered the callback
     #https://dash.plotly.com/determining-which-callback-input-changed
     if ctx.triggered_id == "annotation-color-picker":
-        print('herrr')
-        print(relayout_data)
-        print(color_value)
         update_annotations(relayout_data, color_value)
         return fig, submit_clicks, confirm, reset
 
     # resetting image if confirm was clicked
     if confirm:
         return clean_figure(confirm)
+
+    print(relayout_data)
+    # relayout_data gives back user changes data, if it exists, update changes to figure
+    if "dragmode" in str(relayout_data):
+        fig.update_layout(relayout_data)
+    elif relayout_data:
+        print("1")
+        update_annotations(relayout_data, color_value,font_size)
 
     return fig, submit_clicks, confirm, reset
 
@@ -243,14 +238,19 @@ def update_annotations(relayout_data, color_value='black', size=28):
 # for shape layouts
 # https://plotly.com/python/reference/layout/shapes/#layout-shapes-items-shape-type
     if "'shapes':" in str(relayout_data):
-        print(relayout_data)
-        relayout_data['shapes'][-1]["fillcolor"] = f'rgba({r},{g},{b},{a})'
-        fig.layout.shapes = ()
-        # all shapes on screen will be returned in relay data upon new shape creation.
-        for i in relayout_data['shapes']:
-            fig.add_shape(i)
+        if len(relayout_data['shapes']) == 0:
+            fig.layout.shapes = ()
+        else:
+            print(color_value)
+            if 'hex' in str(color_value):
+                relayout_data['shapes'][-1]["line"]["color"] = color_value["hex"]
+            fig.layout.shapes = ()
+            # all shapes on screen will be returned in relay data upon new shape creation.
+            for i in relayout_data['shapes']:
+                fig.add_shape(i)
     # changing shapes
     elif "shapes[" in str(relayout_data):
+
         # using regex to find which shape was changed
         shape_num_index = re.search(r"\d", str(relayout_data))
         i = int(str(relayout_data)[shape_num_index.start()])
@@ -264,7 +264,8 @@ def update_annotations(relayout_data, color_value='black', size=28):
             counter = counter + 1
         for key, n_key in zip(relayout_data.keys(), dictnames):
             new_dict[n_key] = relayout_data[key]
-        new_dict["fillcolor"] = f'rgba({r},{g},{b},{a})'
+        if 'hex' in str(color_value):
+            new_dict["line"]= dict(color=color_value["hex"])
         fig.update_shapes(new_dict, i)
 # for text layout:
 # https://plotly.com/python/reference/layout/annotations/
