@@ -195,10 +195,9 @@ def save_data(relayout_data, inputText, submit_clicks, color_value, font_size, s
         fig.layout.annotations = add_text(inputText, color_value, font_size)
         return fig, fig.layout.shapes, fig.layout.annotations, fig.layout.images, 0, 0
     if ctx.triggered_id == "url-submit":
-        print("here")
-        fig.update_layout_images(
+        fig.layout.images = fig.update_layout_images(
             source=url_input
-        )
+        )["layout"]['images']
         return fig, fig.layout.shapes, fig.layout.annotations, fig.layout.images, 0, 0
     # this adds reactive color changes if the color picker was what triggered the callback
     # https://dash.plotly.com/determining-which-callback-input-changed
