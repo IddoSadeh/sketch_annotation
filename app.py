@@ -153,6 +153,18 @@ fig.add_layout_image(
         source=img)
 )
 
+ogimg=dict(
+        x=0,
+        sizex=img_width * scale_factor,
+        y=img_height * scale_factor,
+        sizey=img_height * scale_factor,
+        xref="x",
+        yref="y",
+        opacity=0.5,
+        layer="below",
+        sizing="stretch",
+        source=img)
+
 # Configure other layout
 fig.update_layout(
     width=img_width * scale_factor,
@@ -187,7 +199,8 @@ def save_data(relayout_data, inputText, submit_clicks, color_value, font_size, s
 
     fig.layout.annotations = text_data
     fig.layout.shapes = shapes_data
-    # fig.layout.images = image_data
+    if image_data:
+        fig.layout.images = image_data
     if ctx.triggered_id == "shapes_data" or ctx.triggered_id == "text_data" or ctx.triggered_id == "image_data":
         return fig, fig.layout.shapes, fig.layout.annotations, fig.layout.images, 0, 0
 
