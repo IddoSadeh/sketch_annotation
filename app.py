@@ -336,11 +336,12 @@ def display_confirm(submit, reset):
     Output('shapes_data', 'clear_data'),
     Output('text_data', 'clear_data'),
     Output('fig-image', 'relayoutData'),
+    Output('image_data', 'clear_data'),
     Input('confirm-reset', 'submit_n_clicks'),
 )
 def clean_figure(confirm):
     if ctx.triggered_id == 'confirm-reset':
-        return True, True, None
+        return True, True, None, True
     else:
         return dash.no_update
 
