@@ -4,10 +4,10 @@ import dash
 from dash import Dash, dcc, html, Input, Output, State, ctx
 import dash_daq as daq
 from flask import Flask
-
+from dash.exceptions import PreventUpdate
 
 server = Flask(__name__)
-app = dash.Dash(__name__,server=server)
+app = dash.Dash(__name__, server=server)
 # Build App
 fig = go.Figure()
 
@@ -18,6 +18,7 @@ fig = go.Figure()
 config = {
     # 'editable': True,
     # # more edits options: https://dash.plotly.com/dash-core-components/graph
+    'displayModeBar': True,
     'edits': {
         'annotationPosition': True,
         'annotationText': True,
@@ -33,6 +34,16 @@ config = {
         "addtext",
 
     ],
+    "modeBarButtonsToRemove": [
+        "zoom",
+        "Pan",
+        "select2d",
+        "lasso2d",
+        "zoomin",
+        "zoomout",
+        "autoscale",
+        "resetscale"
+    ],
 
 }
 app.layout = html.Div(
@@ -40,8 +51,12 @@ app.layout = html.Div(
         # store not in use for now
         # for documentation
         # https://dash.plotly.com/dash-core-components/store
-        dcc.Store(id='shapes_data',data=[], storage_type='memory'),
-        dcc.Store(id='text_data',data=[], storage_type='memory'),
+        dcc.Store(id='shapes_data', storage_type='local'),
+        dcc.Store(id='text_data', storage_type='local'),
+        dcc.Store(id='image_data', storage_type='local'),
+        dcc.Store(id="reset_clicks", storage_type='local'),
+        dcc.Store(id='submit_reset_clicks', storage_type='local'),
+        dcc.Store(id='submit_text_clicks', storage_type='local'),
         dcc.ConfirmDialog(
             id='confirm-reset',
             message='Warning! All progress wil be lost! Are you sure you want to continue?',
@@ -50,7 +65,7 @@ app.layout = html.Div(
         html.H3("Drag and draw annotations - use the modebar to pick a different drawing tool"),
 
         html.Div(
-            [dcc.Graph(id="fig-image", figure=fig, config=config)],
+            [dcc.Graph(id="fig-image", figure=fig, config=config), ],
             style={
                 "display": "inline-block",
                 "position": "absolute",
@@ -60,21 +75,23 @@ app.layout = html.Div(
         html.Div([
             # for input documentation
             # https://dash.plotly.com/dash-core-components/input
+            html.Pre("Change image"),
+            dcc.Input(id="url-input", type='text'),
+            html.Button('change image', id='url-submit', n_clicks=0),
             html.Pre("Enter text"),
             dcc.Input(id="text-input", type='text'),
             html.Pre("Choose text font size"),
-            dcc.Input(id='font-size', type="number", min=10, max=30, step=1,value = 28),
+            dcc.Input(id='font-size', type="number", min=10, max=30, step=1, value=28),
             html.Pre(),
             html.Button('add text to image', id='submit-val', n_clicks=0),
             html.Pre("Clear Image"),
-            html.Button('clear image', id="clean-reset", n_clicks=0),
+            html.Button('clear image', id="clear-image", n_clicks=0),
             html.Pre('Color Picker'),
             # for colorpicker documentation
             # https://dash.plotly.com/dash-daq
             daq.ColorPicker(
-            id="annotation-color-picker", label="Color Picker", value=dict(rgb=dict(r=0, g=0, b=0, a=0))
+                id="annotation-color-picker", label="Color Picker", value=dict(rgb=dict(r=0, g=0, b=0, a=0))
             )
-
 
         ],
             style={
@@ -87,10 +104,9 @@ app.layout = html.Div(
     ],
 )
 
-img = "https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?ixlib=rb-1.2.1&ixid" \
-      "=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8Zm9jdXN8ZW58MHx8MHx8&w=1000&q=80 "
-
-
+# img = "https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8Zm9jdXN8ZW58MHx8MHx8&w=1000&q=80 "
+img = "https://visit.ubc.ca/wp-content/uploads/2019/04/plantrip_header-2800x1000_2x.jpg"
+# img ="https://raw.githubusercontent.com/michaelbabyn/plot_data/master/bridge.jpg"
 img_width = 1600
 img_height = 900
 scale_factor = 0.5
@@ -109,14 +125,17 @@ fig.add_trace(
 # Configure axes
 fig.update_xaxes(
     visible=False,
-    range=[0, img_width * scale_factor]
+    range=[0, img_width * scale_factor],
+    fixedrange=True
 )
 
 fig.update_yaxes(
     visible=False,
     range=[0, img_height * scale_factor],
     # the scaleanchor attribute ensures that the aspect ratio stays constant
-    scaleanchor="x"
+    scaleanchor="x",
+    # fixedrange dsiables zoom
+    fixedrange=True
 )
 
 # Add image
@@ -142,64 +161,56 @@ fig.update_layout(
 )
 
 
-
-
-
-
-
 @app.callback(
-    Output('confirm-reset', 'displayed'),
-    Input('confirm-reset', 'submit_n_clicks'),
-    Input('clean-reset', 'n_clicks'))
-def display_confirm(submit, reset):
-    if reset and not submit:
-        return True
-    if reset and submit:
-        if reset > submit:
-            return True
-    return False
-
-
-@app.callback(
-    Output("fig-image", "figure"),
+    Output('fig-image', 'figure'),
+    Output('shapes_data', 'data'),
+    Output('text_data', 'data'),
+    Output('image_data', 'data'),
     Output('submit-val', 'n_clicks'),
-    Output('clean-reset', 'n_clicks'),
+    Output('url-submit', 'n_clicks'),
     # for explanation on relayout data:
     # https://dash.plotly.com/interactive-graphing
     Input('fig-image', 'relayoutData'),
     State('text-input', 'value'),
     Input('submit-val', 'n_clicks'),
-    Input('clean-reset', 'n_clicks'),
     Input("annotation-color-picker", "value"),
     State("font-size", "value"),
     Input('shapes_data', 'data'),
     Input('text_data', 'data'),
+    Input('image_data', 'data'),
+    Input('url-input', 'value'),
+    Input('url-submit', 'n_clicks')
 )
-def save_data(relayout_data, inputText, submit_clicks, reset, color_value, font_size,shapes_data,text_data):
-    print("new")
+def save_data(relayout_data, inputText, submit_clicks, color_value, font_size, shapes_data, text_data, image_data,
+              url_input, url_clicks):
     # adding new text
-    if submit_clicks:
-        if not len(fig.layout.annotations) == submit_clicks:
-            return add_text(inputText, color_value, font_size), submit_clicks, reset
 
-    #this adds reactive color changes if the color picker was what triggered the callback
-    #https://dash.plotly.com/determining-which-callback-input-changed
-    if ctx.triggered_id == "annotation-color-picker":
-        update_annotations(relayout_data, color_value)
-        return fig, submit_clicks, reset
+    fig.layout.annotations = text_data
+    fig.layout.shapes = shapes_data
+    # fig.layout.images = image_data
+    if ctx.triggered_id == "shapes_data" or ctx.triggered_id == "text_data" or ctx.triggered_id == "image_data":
+        return fig, fig.layout.shapes, fig.layout.annotations, fig.layout.images, 0, 0
 
-
-    # relayout_data gives back user changes data, if it exists, update changes to figure
-    if "dragmode" in str(relayout_data):
-        fig.update_layout(relayout_data)
-    elif relayout_data:
-
-        update_annotations(relayout_data, color_value,font_size)
-
-    return fig, submit_clicks, reset
-
-
-
+    if ctx.triggered_id == 'submit-val':
+        fig.layout.annotations = add_text(inputText, color_value, font_size)
+        return fig, fig.layout.shapes, fig.layout.annotations, fig.layout.images, 0, 0
+    if ctx.triggered_id == "url-submit":
+        print("here")
+        fig.update_layout_images(
+            source=url_input
+        )
+        return fig, fig.layout.shapes, fig.layout.annotations, fig.layout.images, 0, 0
+    # this adds reactive color changes if the color picker was what triggered the callback
+    # https://dash.plotly.com/determining-which-callback-input-changed
+    if 'dragmode' in str(relayout_data) or "xaxis.range" in str(relayout_data):
+        return dash.no_update
+    if relayout_data:
+        if ctx.triggered_id == "annotation-color-picker":
+            print(relayout_data)
+            update_annotations(relayout_data, color_value)
+        else:
+            update_annotations(relayout_data, color_value, font_size)
+    return fig, fig.layout.shapes, fig.layout.annotations, fig.layout.images, 0, 0
 
 
 # precondition: inputText is not none and the figure has more annotations on it than those saved in figure data
@@ -219,9 +230,9 @@ def add_text(inputText, color_value, font_size=28):
 
         ),
         x=img_width / 4,
-        y=img_height / 2.5,
+        y=img_height / 3,
     )
-    return fig
+    return fig.layout.annotations
 
 
 # preconditions: relayout_data is not none
@@ -232,8 +243,8 @@ def update_annotations(relayout_data, color_value='black', size=28):
     b = color_value['rgb']['b']
     a = color_value['rgb']['a']
 
-# for shape layouts
-# https://plotly.com/python/reference/layout/shapes/#layout-shapes-items-shape-type
+    # for shape layouts
+    # https://plotly.com/python/reference/layout/shapes/#layout-shapes-items-shape-type
     if "'shapes':" in str(relayout_data):
         if len(relayout_data['shapes']) == 0:
             fig.layout.shapes = ()
@@ -261,37 +272,63 @@ def update_annotations(relayout_data, color_value='black', size=28):
         for key, n_key in zip(relayout_data.keys(), dictnames):
             new_dict[n_key] = relayout_data[key]
         if 'hex' in str(color_value):
-            new_dict["line"]= dict(color=color_value["hex"])
+            new_dict["line"] = dict(color=color_value["hex"])
         fig.update_shapes(new_dict, i)
-# for text layout:
-# https://plotly.com/python/reference/layout/annotations/
+    # for text layout:
+    # https://plotly.com/python/reference/layout/annotations/
     # if text is changed, "annotations" wil be part of the relayout data
-    elif "annotations" in str(relayout_data):
+    else:
         fig.update_annotations(captureevents=True)
         # using regex to find which annotation was changed
-        anno_num_index = re.search(r"\d", str(relayout_data))
-        i = int(str(relayout_data)[anno_num_index.start()])
-
-        # if text content is changed "text" will be in relay data
-        if "text" in str(relayout_data):
-            fig.update_annotations(Annotation(fig.layout.annotations[i]['x'], fig.layout.annotations[i]['y'],
-                                              relayout_data[f'annotations[{i}].text'], f'rgba({r},{g},{b},1)',
+        if relayout_data is None:
+            j = len(fig.layout.annotations) - 1
+            fig.update_annotations(Annotation(fig.layout.annotations[j]['x'], fig.layout.annotations[j]['y'],
+                                              fig.layout.annotations[j]['text'], f'rgba({r},{g},{b},1)',
                                               size).__dict__,
-                                   i)
+                                   j)
 
-        # if text is just moved relay data wont have "text" in data
         else:
-            fig.update_annotations(
-                Annotation(relayout_data[f'annotations[{i}].x'], relayout_data[f'annotations[{i}].y'],
-                           fig.layout.annotations[i]['text'], f'rgba({r},{g},{b},1)', size).__dict__, i)
+            anno_num_index = re.search(r"\d", str(relayout_data))
+            i = int(str(relayout_data)[anno_num_index.start()])
+
+            # if text content is changed "text" will be in relay data
+            if "text" in str(relayout_data):
+                fig.update_annotations(Annotation(fig.layout.annotations[i]['x'], fig.layout.annotations[i]['y'],
+                                                  relayout_data[f'annotations[{i}].text'], f'rgba({r},{g},{b},1)',
+                                                  size).__dict__,
+                                       i)
+            # for case where annotation was added but not changed (moved or editied)
+
+            # if text is just moved relay data wont have "text" in data
+            else:
+                fig.update_annotations(
+                    Annotation(relayout_data[f'annotations[{i}].x'], relayout_data[f'annotations[{i}].y'],
+                               fig.layout.annotations[i]['text'], f'rgba({r},{g},{b},1)', size).__dict__, i)
+
 
 @app.callback(
-    Output('shapes_data','clear_data'),
+    Output('confirm-reset', 'displayed'),
+    Input('confirm-reset', 'submit_n_clicks'),
+    Input('clear-image', 'n_clicks')
+)
+def display_confirm(submit, reset):
+    if ctx.triggered_id == 'clear-image':
+        return True
+    else:
+        return False
+
+
+@app.callback(
+    Output('shapes_data', 'clear_data'),
     Output('text_data', 'clear_data'),
+    Output('fig-image', 'relayoutData'),
     Input('confirm-reset', 'submit_n_clicks'),
 )
 def clean_figure(confirm):
-    return True, True
+    if ctx.triggered_id == 'confirm-reset':
+        return True, True, None
+    else:
+        return dash.no_update
 
 
 class Annotation:
@@ -308,4 +345,4 @@ class Annotation:
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True,host="0.0.0.0", port=8050)
+    app.run_server(debug=True, host="0.0.0.0", port=8050)
